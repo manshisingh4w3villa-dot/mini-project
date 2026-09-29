@@ -152,7 +152,6 @@ export default function Landing() {
               <span>From <b>$18/hr</b></span>
             </div>
           </div>
-          <img className="hero-asset" src="/src/assets/hero.png" alt="" />
           <div className="circle-label">
             DESIGNED<br />FOR FOCUS
           </div>

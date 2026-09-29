@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { lazy, Suspense, useEffect, useState } from 'react';
 const Landing = lazy(() => import('./pages/Landing.jsx'));
 const Plans = lazy(() => import('./pages/Plans.jsx'));
@@ -273,6 +273,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </Suspense>
     </BrowserRouter>
