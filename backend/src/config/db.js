@@ -1,8 +1,14 @@
 const { Pool } = require("pg");
 
+const isNeon = process.env.DATABASE_URL?.includes("neon.tech");
+
 const pool = new Pool(
   process.env.DATABASE_URL
-    ? { connectionString: process.env.DATABASE_URL }
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: isNeon ? { rejectUnauthorized: false } : false,
+        connectionTimeoutMillis: 10000,
+      }
     : {
         host: process.env.DB_HOST,
         port: process.env.DB_PORT,
@@ -11,6 +17,7 @@ const pool = new Pool(
         password: process.env.DB_PASSWORD,
       }
 );
+
 
 pool.on("error", (error) => {
   console.error("Unexpected PostgreSQL pool error", error);
