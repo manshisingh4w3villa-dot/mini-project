@@ -2,7 +2,9 @@ import { API_BASE_URL } from '../services/api';
 
 export default function SocialLoginButtons({ disabled = false }) {
   function continueWith(provider) {
-    window.location.assign(`${API_BASE_URL}/auth/${provider}`);
+    const authUrl = new URL(`${API_BASE_URL}/auth/${provider}`, window.location.href);
+    authUrl.searchParams.set('frontend_origin', window.location.origin);
+    window.location.assign(authUrl.toString());
   }
 
   return (

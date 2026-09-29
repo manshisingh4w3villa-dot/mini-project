@@ -3,6 +3,7 @@ const { calculateBookingPrice } = require('../services/bookingPricing');
 const {
   requireStripe,
 } = require('../services/stripeService');
+const { frontendUrl: getFrontendUrl } = require('../config/urls');
 
 function validateTimeRange(startTime, endTime) {
   return startTime && endTime && startTime < endTime;
@@ -105,7 +106,7 @@ async function createBooking(req, res, next) {
 
     // 9. Create Stripe Checkout Session for the discounted total.
     const stripe = requireStripe();
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = getFrontendUrl(req);
     const amountInPaise = Math.round(pricing.totalAmount * 100);
     const session = await stripe.checkout.sessions.create({
     mode: 'payment',

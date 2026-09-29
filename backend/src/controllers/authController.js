@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const userModel = require("../models/userModel");
 const { sendVerificationEmail } = require("../services/emailService");
+const { frontendUrl, apiUrl } = require("../config/urls");
 
 const SOCIAL_PROVIDERS = new Set(["google", "facebook"]);
 const STATE_COOKIE = "oauth_state";
@@ -16,13 +17,9 @@ function newVerificationToken() {
   };
 }
 
-function frontendUrl() {
-  return process.env.FRONTEND_URL || "http://localhost:5173";
-}
-
 function callbackUrl(provider) {
-  return process.env[`${provider.toUpperCase()}_CALLBACK_URL`]
-    || `${process.env.API_BASE_URL || "http://localhost:3000"}/api/auth/${provider}/callback`;
+  const configured = process.env[`${provider.toUpperCase()}_CALLBACK_URL`];
+  return configured || new URL(`/api/auth/${provider}/callback`, `${apiUrl()}/`).toString();
 }
 
 function parseCookies(header = "") {
@@ -38,8 +35,24 @@ function configured(provider) {
     : process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET;
 }
 
-function socialErrorRedirect(res, message) {
-  res.redirect(`${frontendUrl()}/oauth/callback#error=${encodeURIComponent(message)}`);
+function readOAuthSession(req) {
+  const raw = parseCookies(req.headers.cookie)[STATE_COOKIE];
+  if (!raw) return null;
+  try {
+    return JSON.parse(Buffer.from(raw, "base64url").toString("utf8"));
+  } catch {
+    return { state: raw, frontendOrigin: null };
+  }
+}
+
+function socialErrorRedirect(res, message, frontendOrigin) {
+  try {
+    const url = new URL("/oauth/callback", frontendUrl(null, frontendOrigin));
+    url.hash = new URLSearchParams({ error: message }).toString();
+    return res.redirect(url.toString());
+  } catch {
+    return res.status(503).json({ error: "Social sign-in is not configured for this environment" });
+  }
 }
 
 function beginSocialAuth(req, res) {
@@ -47,8 +60,16 @@ function beginSocialAuth(req, res) {
   if (!SOCIAL_PROVIDERS.has(provider)) return res.status(404).json({ error: "Unsupported social provider" });
   if (!configured(provider)) return res.status(503).json({ error: `${provider} sign-in is not configured` });
 
+  let returnOrigin;
+  try {
+    returnOrigin = frontendUrl(req, req.query.frontend_origin);
+  } catch {
+    return res.status(503).json({ error: "Frontend URL is not configured for social sign-in" });
+  }
+
   const state = crypto.randomBytes(32).toString("hex");
-  res.cookie(STATE_COOKIE, state, {
+  const stateCookie = Buffer.from(JSON.stringify({ state, frontendOrigin: returnOrigin })).toString("base64url");
+  res.cookie(STATE_COOKIE, stateCookie, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -103,9 +124,11 @@ async function fetchSocialProfile(provider, code) {
 async function socialCallback(req, res, next) {
   const { provider } = req.params;
   if (!SOCIAL_PROVIDERS.has(provider)) return res.status(404).json({ error: "Unsupported social provider" });
-  if (req.query.error) return socialErrorRedirect(res, "Social sign-in was cancelled");
-  if (!req.query.code || !req.query.state || parseCookies(req.headers.cookie)[STATE_COOKIE] !== req.query.state) {
-    return socialErrorRedirect(res, "Your sign-in session expired. Please try again.");
+  const oauthSession = readOAuthSession(req);
+  const returnOrigin = oauthSession?.frontendOrigin;
+  if (req.query.error) return socialErrorRedirect(res, "Social sign-in was cancelled", returnOrigin);
+  if (!req.query.code || !req.query.state || oauthSession?.state !== req.query.state) {
+    return socialErrorRedirect(res, "Your sign-in session expired. Please try again.", returnOrigin);
   }
   res.clearCookie(STATE_COOKIE, { path: "/api/auth" });
   try {
@@ -118,10 +141,10 @@ async function socialCallback(req, res, next) {
       lastName: profile.lastName.trim().slice(0, 100),
     });
     const params = new URLSearchParams({ token: createAccessToken(result.user), user: Buffer.from(JSON.stringify(result.user)).toString("base64url"), merged: String(result.merged) });
-    res.redirect(`${frontendUrl()}/oauth/callback#${params}`);
+    res.redirect(`${frontendUrl(null, returnOrigin)}/oauth/callback#${params}`);
   } catch (error) {
     console.error(`Social sign-in failed for ${provider}:`, error.message);
-    socialErrorRedirect(res, "We could not verify that social account. Please try again.");
+    socialErrorRedirect(res, "We could not verify that social account. Please try again.", returnOrigin);
   }
 }
 
@@ -147,7 +170,7 @@ async function signup(req, res, next) {
       verificationTokenExpiresAt: verification.expiresAt,
       isVerified: false,
     });
-    const delivery = await sendVerificationEmail({ email: user.email, firstName: user.first_name, token: verification.token });
+    const delivery = await sendVerificationEmail({ email: user.email, firstName: user.first_name, token: verification.token, frontendUrl: frontendUrl(req) });
     res.status(201).json({
       user,
       message: delivery.error
@@ -233,6 +256,7 @@ async function resendVerification(req, res, next) {
       email: user.email,
       firstName: user.first_name,
       token: verification.token,
+      frontendUrl: frontendUrl(req),
     });
 
     if (delivery.error) {

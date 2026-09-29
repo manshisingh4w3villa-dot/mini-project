@@ -6,14 +6,14 @@ const {
 } = require('../services/stripeService');
 const userModel = require('../models/userModel');
 const bookingModel = require('../models/bookingModel');
+const { frontendUrl: getFrontendUrl } = require('../config/urls');
 
 async function createCheckoutSession(req, res, next) {
   try {
     const stripe = requireStripe();
     const { plan: planKey } = req.body;
     const plan = await getPlan(planKey);
-    const frontendUrl =
-      process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = getFrontendUrl(req);
 
     const result = await userModel.withSubscriptionCheckoutLock(req.user.id, async (client, user) => {
       const active = user.plan_status === 'active'

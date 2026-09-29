@@ -10,8 +10,8 @@ function deliveryError(error) {
   return message;
 }
 
-async function sendVerificationEmail({ email, firstName, token }) {
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+async function sendVerificationEmail({ email, firstName, token, frontendUrl }) {
+  if (!frontendUrl) throw new Error('A frontend URL is required to create an email verification link');
   const verifyUrl = `${frontendUrl}/verify-email?token=${token}`;
   console.log(`[Email Service] Verification link for ${email}: ${verifyUrl}`);
 
