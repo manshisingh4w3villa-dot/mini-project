@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { getAdminUsers } from '../services/AdminService';
 import { useAuth } from '../context/AuthContext';
+import '../styles/Admin.css';
 
 const emptyResult = { users: [], total: 0, page: 1, pageSize: 10, totalPages: 0 };
 

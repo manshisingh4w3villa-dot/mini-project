@@ -1,0 +1,141 @@
+.admin-container,
+.admin-container .dashboard-main,
+.admin-container .dashboard-content-wrap,
+.admin-users-panel,
+.admin-user-table {
+	min-width: 0;
+}
+
+.admin-user-row > *,
+.admin-user-row strong {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.admin-page-summary {
+	white-space: nowrap;
+}
+
+@media (max-width: 680px) {
+	.admin-container .dashboard-content-wrap {
+		padding: 28px 16px 40px;
+	}
+
+	.admin-container .dashboard-greeting {
+		margin-bottom: 24px;
+	}
+
+	.admin-container .dashboard-greeting h1 {
+		font-size: 27px;
+		letter-spacing: -1.2px;
+		overflow-wrap: anywhere;
+	}
+
+	.admin-container .verification-pill {
+		margin-top: 14px;
+	}
+
+	.admin-users-panel {
+		padding: 18px 15px;
+	}
+
+	.admin-users-panel .panel-heading {
+		align-items: flex-start;
+		gap: 12px;
+	}
+
+	.admin-users-panel .panel-heading h3 {
+		font-size: 15px;
+	}
+
+	.admin-filters {
+		gap: 13px;
+		margin-top: 20px;
+	}
+
+	.admin-user-row {
+		align-items: start;
+		column-gap: 8px;
+		row-gap: 8px;
+		grid-template-columns: minmax(0, 1fr) auto;
+		padding: 14px 0;
+	}
+
+	.admin-user-row > div:first-child {
+		grid-column: 1;
+		grid-row: 1;
+	}
+
+	.admin-user-row > span:nth-child(2) {
+		color: var(--dash-muted);
+		font-size: 10px;
+		grid-column: 1 / -1;
+		grid-row: 2;
+		line-height: 1.5;
+	}
+
+	.admin-user-row > .admin-statuses {
+		grid-column: 1 / -1;
+		grid-row: 3;
+		justify-content: flex-start;
+	}
+
+	.admin-user-row > .admin-plan {
+		grid-column: 1 / -1;
+		grid-row: 4;
+	}
+
+	.admin-user-row > span:last-child {
+		color: var(--dash-muted);
+		font-size: 10px;
+		grid-column: 2;
+		grid-row: 1;
+		text-align: right;
+	}
+
+	.admin-pagination {
+		display: grid;
+		gap: 12px 8px;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	}
+
+	.admin-pagination .outline-button {
+		min-width: 0;
+		padding: 9px 8px;
+		white-space: nowrap;
+	}
+
+	.admin-pagination > span {
+		grid-column: 1 / -1;
+		grid-row: 1;
+		text-align: center;
+	}
+
+	.admin-pagination > button:first-child {
+		grid-column: 1;
+		grid-row: 2;
+		justify-self: start;
+	}
+
+	.admin-pagination > button:last-child {
+		grid-column: 2;
+		grid-row: 2;
+		justify-self: end;
+	}
+}
+
+@media (max-width: 360px) {
+	.admin-container .dashboard-content-wrap {
+		padding-right: 12px;
+		padding-left: 12px;
+	}
+
+	.admin-users-panel {
+		padding-right: 12px;
+		padding-left: 12px;
+	}
+
+	.admin-users-panel .panel-heading {
+		flex-direction: column;
+	}
+}

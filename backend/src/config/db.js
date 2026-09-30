@@ -46,6 +46,12 @@ if (!poolConfig) {
 
 const pool = new Pool(poolConfig);
 
+// Force search_path explicitly on every new connection — Neon's pooled
+// connections don't reliably inherit the role-level default, so set it
+// ourselves rather than depending on Neon's configuration.
+pool.on("connect", (client) => {
+  client.query("SET search_path TO public");
+});
 
 pool.on("error", (error) => {
   console.error("Unexpected PostgreSQL pool error", error);
