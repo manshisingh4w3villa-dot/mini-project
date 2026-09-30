@@ -11,21 +11,30 @@ function normalizeOrigin(value) {
 
 function isLoopbackOrigin(origin) {
   if (!origin) return false;
-  const { hostname, protocol } = new URL(origin);
-  return protocol === 'http:' && /^(localhost|127(?:\.\d{1,3}){3}|\[::1\])$/i.test(hostname);
+  const { hostname } = new URL(origin);
+  return /^(localhost|127(?:\.\d{1,3}){3}|\[::1\])$/i.test(hostname);
+}
+
+function configuredFrontendOrigins() {
+  return (process.env.FRONTEND_URL || '')
+    .split(',')
+    .map((value) => normalizeOrigin(value.trim()))
+    .filter(Boolean);
 }
 
 function isAllowedFrontendOrigin(origin) {
   const candidate = normalizeOrigin(origin);
   if (!candidate) return false;
+  if (process.env.NODE_ENV === 'production' && isLoopbackOrigin(candidate)) return false;
 
-  const configured = normalizeOrigin(process.env.FRONTEND_URL);
-  if (configured && candidate === configured) return true;
+  if (configuredFrontendOrigins().includes(candidate)) return true;
   return process.env.NODE_ENV !== 'production' && isLoopbackOrigin(candidate);
 }
 
 function frontendUrl(req, requestedOrigin) {
-  const configured = normalizeOrigin(process.env.FRONTEND_URL);
+  const configured = configuredFrontendOrigins().find(
+    (origin) => process.env.NODE_ENV !== 'production' || !isLoopbackOrigin(origin),
+  );
   const refererOrigin = normalizeOrigin(req?.get?.('referer'));
   const candidate = normalizeOrigin(requestedOrigin || req?.get?.('origin') || refererOrigin);
 
