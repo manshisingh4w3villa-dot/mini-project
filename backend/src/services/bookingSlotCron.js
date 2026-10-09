@@ -1,38 +1,25 @@
-const pool = require('../config/db');
+// services/bookingSlotCron.js
 
-async function completeExpiredBookings() {
-  const result = await pool.query(
-    `UPDATE bookings
-     SET status = 'completed', updated_at = NOW()
-     WHERE status = 'booked'
-       AND (booking_date + end_time) <= NOW()`
+const pool = require("../config/db");
+
+async function updateCompletedBookings() {
+  const query = `
+    UPDATE bookings
+    SET status = 'completed'
+    WHERE status = 'confirmed'
+      AND end_time <= NOW()
+    RETURNING id;
+  `;
+
+  const result = await pool.query(query);
+
+  console.log(
+    `Booking cron: ${result.rowCount} booking(s) marked as completed`
   );
 
-  return result.rowCount || 0;
-}
-
-function startBookingSlotCron() {
-  if (global.__bookingSlotCronStarted) {
-    return;
-  }
-
-  global.__bookingSlotCronStarted = true;
-
-  setInterval(async () => {
-    try {
-      const updatedCount = await completeExpiredBookings();
-      if (updatedCount > 0) {
-        console.log(`[cron] Marked ${updatedCount} expired booking slot(s) as completed`);
-      }
-    } catch (error) {
-      console.error('[cron] Booking slot cleanup failed:', error.message);
-    }
-  }, 60 * 1000);
-
-  console.log('[cron] Booking slot cleanup job started');
+  return result.rowCount;
 }
 
 module.exports = {
-  completeExpiredBookings,
-  startBookingSlotCron,
+  updateCompletedBookings,
 };
