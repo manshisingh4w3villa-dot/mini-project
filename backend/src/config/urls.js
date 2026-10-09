@@ -16,10 +16,11 @@ function isLoopbackOrigin(origin) {
 }
 
 function configuredFrontendOrigins() {
-  return (process.env.FRONTEND_URL || '')
+  const configured = (process.env.FRONTEND_URL || '')
     .split(',')
     .map((value) => normalizeOrigin(value.trim()))
     .filter(Boolean);
+  return [...new Set(['https://mini-projectfrontend.vercel.app', ...configured])];
 }
 
 function isAllowedFrontendOrigin(origin) {

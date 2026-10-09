@@ -11,7 +11,7 @@
 //
 // Environment variables required (set via neon deploy --env .env.functions):
 //   BACKEND_URL  — The deployed Vercel backend base URL, e.g.
-//                  https://mini-project-backend-beta.vercel.app
+//                  https://mini-project-backend-git-feature-modifications-coworking4.vercel.app
 //   CRON_SECRET  — The shared secret expected by the backend's cron route.
 //
 // Neon injects DATABASE_URL automatically, but this function does not
@@ -66,4 +66,3 @@ export default {
     });
   },
 };
-
