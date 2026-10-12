@@ -20,7 +20,11 @@ function configuredFrontendOrigins() {
     .split(',')
     .map((value) => normalizeOrigin(value.trim()))
     .filter(Boolean);
-  return [...new Set(['https://mini-projectfrontend.vercel.app', ...configured])];
+  return [...new Set([
+    'https://mini-projectfrontend.vercel.app',
+    'https://frontend-coworking4.vercel.app',
+    ...configured,
+  ])];
 }
 
 function isAllowedFrontendOrigin(origin) {
