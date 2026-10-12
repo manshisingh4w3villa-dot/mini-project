@@ -2,8 +2,8 @@
 
 A full-stack co-working space booking platform built on the PERN stack (PostgreSQL, Express, React, Node.js). Supports user authentication (standard and Google OAuth), profile management, workspace discovery and booking, subscription-based pricing plans with Stripe payments, and an admin panel.
 
-**Live app:** https://mini-projectfrontend.vercel.app
-**API:** https://mini-project-backend-beta.vercel.app
+**Live app:** https://frontend-coworking4.vercel.app/
+**API:** https://backend-coworking4.vercel.app/
 
 ---
 
