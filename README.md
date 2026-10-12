@@ -123,6 +123,10 @@ JWT_SECRET=
 API_BASE_URL=http://localhost:3000
 FRONTEND_URL=http://localhost:5173
 
+# Set a random secret in the production backend and as the external scheduler's
+# Authorization: Bearer <secret> header.
+CRON_SECRET=
+
 # Google OAuth — register these callback URLs in Google Cloud Console:
 # http://localhost:3000/api/auth/google/callback
 GOOGLE_CLIENT_ID=
@@ -181,7 +185,7 @@ The backend and frontend are deployed as **two separate Vercel projects** from t
 
 ## Known Limitations
 
-- **Cron jobs** (booking slot cleanup, plan-expiration checks) are built for a long-running Node process and don't reliably execute on Vercel's serverless model. Move to [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs) or an external scheduler for production use.
+- **Cron jobs:** The booking-slot cleanup is exposed at `GET /api/cron/booking-slot-cleanup`. Set a strong `CRON_SECRET` in the backend's Vercel production environment, then configure an external scheduler to call `https://backend-one-tawny-54.vercel.app/api/cron/booking-slot-cleanup` every minute with the header `Authorization: Bearer <CRON_SECRET>`. Keep the same secret in the scheduler's header configuration; do not put it in the URL. Redeploy the backend after setting the environment variable. The in-process timer is skipped on Vercel, where processes aren't persistent, and remains enabled for long-running Node deployments.
 - **Email delivery** uses Resend's sandbox sender (`onboarding@resend.dev`), which only delivers to the account owner's own verified email. A custom verified domain is required for real user delivery.
 - **Social login** currently supports Google only. Facebook was scoped out (no developer account available at the time); Instagram's login APIs require a Business/Creator account and don't fit a general consumer signup flow.
 

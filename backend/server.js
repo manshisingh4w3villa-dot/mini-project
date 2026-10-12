@@ -11,4 +11,6 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 
-startBookingSlotCron();
+if (!process.env.VERCEL) {
+  startBookingSlotCron();
+}
