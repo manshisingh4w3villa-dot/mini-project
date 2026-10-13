@@ -9,6 +9,7 @@ const profileRoutes = require('./routes/profileRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const cronRoutes = require('./routes/cronRoutes');
 const paymentController = require('./controllers/paymentController');
 
 const app = express();
@@ -30,6 +31,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/cron', cronRoutes);
 
 app.get('/health', async (req, res, next) => {
   try {

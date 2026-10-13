@@ -158,6 +158,7 @@ The backend and frontend are deployed as **two separate Vercel projects** from t
 - Database is hosted on [Neon](https://neon.tech) (serverless PostgreSQL) in production.
 - `FRONTEND_URL` and `API_BASE_URL` on the backend must point to the real deployed URLs (not `localhost`) for CORS and OAuth redirects to work correctly.
 - `VITE_API_URL` on the frontend is baked in at build time — update it and redeploy (`vercel --prod`) if the backend URL changes.
+- `backend/vercel.json` runs expired-booking cleanup daily at 00:00 UTC. Set a random `CRON_SECRET` in the backend Vercel project's **Production** environment and redeploy the backend. Vercel Cron Jobs run only for production deployments; daily scheduling is compatible with Hobby. Check the backend project's Cron Jobs page and function logs to verify successful invocations.
 - A `vercel.json` rewrite rule in `frontend/` is required so client-side routes (e.g. `/verify-email`) don't 404 on direct navigation:
   ```json
   {
@@ -181,7 +182,7 @@ The backend and frontend are deployed as **two separate Vercel projects** from t
 
 ## Known Limitations
 
-- **Cron jobs** (booking slot cleanup, plan-expiration checks) are built for a long-running Node process and don't reliably execute on Vercel's serverless model. Move to [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs) or an external scheduler for production use.
+- **Cron jobs:** Booking-slot cleanup is scheduled in Vercel for production. Plan-expiration checks still require a scheduler.
 - **Email delivery** uses Resend's sandbox sender (`onboarding@resend.dev`), which only delivers to the account owner's own verified email. A custom verified domain is required for real user delivery.
 - **Social login** currently supports Google only. Facebook was scoped out (no developer account available at the time); Instagram's login APIs require a Business/Creator account and don't fit a general consumer signup flow.
 
