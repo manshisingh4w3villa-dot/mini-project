@@ -123,6 +123,10 @@ JWT_SECRET=
 API_BASE_URL=http://localhost:3000
 FRONTEND_URL=http://localhost:5173
 
+# Set a random secret in the production backend and as the external scheduler's
+# Authorization: Bearer <secret> header.
+CRON_SECRET=
+
 # Google OAuth — register these callback URLs in Google Cloud Console:
 # http://localhost:3000/api/auth/google/callback
 GOOGLE_CLIENT_ID=
@@ -157,7 +161,10 @@ The backend and frontend are deployed as **two separate Vercel projects** from t
 
 - Database is hosted on [Neon](https://neon.tech) (serverless PostgreSQL) in production.
 - `FRONTEND_URL` and `API_BASE_URL` on the backend must point to the real deployed URLs (not `localhost`) for CORS and OAuth redirects to work correctly.
-- `VITE_API_URL` on the frontend is baked in at build time — update it and redeploy (`vercel --prod`) if the backend URL changes.
+- `VITE_API_URL` on the frontend is baked in at build time — set it to `https://backend-coworking4.vercel.app/api` in the frontend Vercel project's **Production** environment and redeploy (`vercel --prod`). This must match the backend host used for the OAuth callback so the OAuth state cookie is sent back correctly. A Vercel environment variable overrides the value in `frontend/.env.production`.
+- Google OAuth requires the exact backend callback URL to be listed under the OAuth client's **Authorized redirect URIs** in Google Cloud Console. Production uses `https://backend-coworking4.vercel.app/api/auth/google/callback`; the frontend API URL and backend `API_BASE_URL` should use the same backend host so the OAuth state cookie is returned to the callback. A preview backend also needs `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `API_BASE_URL` configured in its **Preview** environment, and its callback URL must be registered with Google.
+- `backend/vercel.json` schedules expired-booking cleanup every five minutes. Set a random `CRON_SECRET` in the backend Vercel project's **Production** environment, then redeploy the backend to activate it. Vercel sends this value as a Bearer token to the protected cleanup endpoint. Schedules use UTC.
+- Vercel Cron Jobs run only on production deployments, not preview deployments. To clean a separate preview database, configure an external scheduler to call `GET /api/cron/booking-slot-cleanup` on that preview backend with `Authorization: Bearer <CRON_SECRET>`.
 - A `vercel.json` rewrite rule in `frontend/` is required so client-side routes (e.g. `/verify-email`) don't 404 on direct navigation:
   ```json
   {
@@ -181,7 +188,7 @@ The backend and frontend are deployed as **two separate Vercel projects** from t
 
 ## Known Limitations
 
-- **Cron jobs** (booking slot cleanup, plan-expiration checks) are built for a long-running Node process and don't reliably execute on Vercel's serverless model. Move to [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs) or an external scheduler for production use.
+- **Cron jobs:** The booking-slot cleanup is exposed at `GET /api/cron/booking-slot-cleanup`. Set a strong `CRON_SECRET` in the backend's Vercel production environment, then configure an external scheduler to call `https://backend-one-tawny-54.vercel.app/api/cron/booking-slot-cleanup` every minute with the header `Authorization: Bearer <CRON_SECRET>`. Keep the same secret in the scheduler's header configuration; do not put it in the URL. Redeploy the backend after setting the environment variable. The in-process timer is skipped on Vercel, where processes aren't persistent, and remains enabled for long-running Node deployments.
 - **Email delivery** uses Resend's sandbox sender (`onboarding@resend.dev`), which only delivers to the account owner's own verified email. A custom verified domain is required for real user delivery.
 - **Social login** currently supports Google only. Facebook was scoped out (no developer account available at the time); Instagram's login APIs require a Business/Creator account and don't fit a general consumer signup flow.
 

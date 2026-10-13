@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const defaultApiUrl = import.meta.env.PROD
-  ? 'https://mini-project-backend-beta.vercel.app/api'
+  ? 'https://backend-coworking4.vercel.app/api'
   : 'http://localhost:3000/api';
 
 export const API_BASE_URL = import.meta.env.VITE_API_URL || defaultApiUrl;
