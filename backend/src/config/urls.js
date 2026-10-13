@@ -21,8 +21,8 @@ function configuredFrontendOrigins() {
     .map((value) => normalizeOrigin(value.trim()))
     .filter(Boolean);
   return [...new Set([
-    'https://mini-projectfrontend.vercel.app',
     'https://frontend-coworking4.vercel.app',
+    'https://mini-projectfrontend.vercel.app',
     'https://frontend-git-modify-coworking4.vercel.app',
     ...configured,
   ])];
