@@ -54,8 +54,8 @@ export default function Login() {
     setSubmitting(true);
 
     try {
-      await login(form);
-      navigate('/dashboard');
+      const { user: loggedInUser } = await login(form);
+      navigate(loggedInUser?.is_admin ? '/admin' : '/dashboard', { replace: true });
     } catch (err) {
       const responseData = err.response?.data;
       const message = responseData?.error || 'Login failed. Please check your credentials.';

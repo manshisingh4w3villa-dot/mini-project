@@ -28,6 +28,54 @@ async function listUsers(req, res, next) {
     next(error);
   }
 }
+
+function isValidUserId(userId) {
+  return /^\d+$/.test(userId) && Number(userId) > 0;
+}
+
+async function getUser(req, res, next) {
+  if (!isValidUserId(req.params.userId)) {
+    return res.status(400).json({ error: 'A valid user ID is required' });
+  }
+
+  try {
+    const [user, bookings] = await Promise.all([
+      adminModel.getUser(req.params.userId),
+      adminModel.getUserBookings(req.params.userId),
+    ]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ user, bookings });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function updateUser(req, res, next) {
+  if (!isValidUserId(req.params.userId)) {
+    return res.status(400).json({ error: 'A valid user ID is required' });
+  }
+
+  const firstName = typeof req.body.firstName === 'string' ? req.body.firstName.trim() : '';
+  const lastName = typeof req.body.lastName === 'string' ? req.body.lastName.trim() : '';
+  const address = typeof req.body.address === 'string' ? req.body.address.trim() : '';
+
+  if (!firstName || !lastName || firstName.length > 100 || lastName.length > 100 || address.length > 500) {
+    return res.status(400).json({ error: 'Enter a first and last name (up to 100 characters each) and an address up to 500 characters.' });
+  }
+
+  try {
+    const user = await adminModel.updateUserDetails(req.params.userId, {
+      firstName,
+      lastName,
+      address: address || null,
+    });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ user });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function deleteUser(req, res, next) {
   try {
     const userId = req.params.userId;
@@ -64,4 +112,4 @@ async function addWorkspace(req,res,next){
   }
 }
 
-module.exports = { createAdmin, listUsers };
+module.exports = { createAdmin, listUsers, getUser, updateUser };

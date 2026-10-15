@@ -31,7 +31,7 @@ export default function SocialAuthCallback() {
     if (result.error || hasCompleted.current) return;
     hasCompleted.current = true;
     completeSocialLogin(result);
-    navigate('/dashboard', { replace: true });
+    navigate(result.user?.is_admin ? '/admin' : '/dashboard', { replace: true });
   }, [completeSocialLogin, navigate, result]);
 
   return (

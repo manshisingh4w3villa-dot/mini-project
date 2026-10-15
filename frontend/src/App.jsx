@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { Component, lazy, Suspense, useEffect, useState } from 'react';
 const Landing = lazy(() => import('./pages/Landing.jsx'));
 const Plans = lazy(() => import('./pages/Plans.jsx'));
 const Signup = lazy(() => import('./pages/Signup.jsx'));
@@ -19,6 +19,37 @@ const PlanPanel = lazy(() => import('./components/PlanPanel.jsx'));
 import { useAuth } from './context/AuthContext';
 import './styles/Dashboard.css';
 import './App.css';
+
+class AdminPageErrorBoundary extends Component {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error) {
+    console.error('Admin page failed to render:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <main className="admin-render-error" role="alert">
+          <div>
+            <p className="dashboard-eyebrow">ADMINISTRATION</p>
+            <h1>We couldn’t load user management</h1>
+            <p>Please reload the page. If the problem continues, return to your workspace and try again.</p>
+            <div>
+              <button type="button" className="admin-save-button" onClick={() => window.location.reload()}>Reload page</button>
+              <a className="admin-cancel-button" href="/dashboard">Open workspace</a>
+            </div>
+          </div>
+        </main>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function DashboardIcon({ name }) {
   const sharedProps = {
@@ -319,7 +350,9 @@ export default function App() {
           path="/admin"
           element={
             <ProtectedRoute>
-              <AdminPanel />
+              <AdminPageErrorBoundary>
+                <AdminPanel />
+              </AdminPageErrorBoundary>
             </ProtectedRoute>
           }
         />

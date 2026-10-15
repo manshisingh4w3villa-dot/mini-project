@@ -5,5 +5,7 @@ const { requireAuth, requireAdmin } = require('../middleware/auth');
 const router = express.Router();
 router.post('/setup', adminController.createAdmin);
 router.get('/users', requireAuth, requireAdmin, adminController.listUsers);
+router.get('/users/:userId', requireAuth, requireAdmin, adminController.getUser);
+router.put('/users/:userId', requireAuth, requireAdmin, adminController.updateUser);
 router.get('/bookings', requireAuth, requireAdmin, bookingController.listBookings);
 module.exports = router;
