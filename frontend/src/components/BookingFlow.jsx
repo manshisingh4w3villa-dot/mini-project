@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createBooking } from '../services/BookingService';
 import { getLocations } from '../services/LocationService';
+import LoadingState from './LoadingState';
 
 function formatMoney(value) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value || 0);
@@ -132,7 +133,7 @@ export default function BookingFlow({ profile, initialLocation, initialDate, onB
     }
   }
 
-  if (loading) return <div className="booking-state">Loading locations...</div>;
+  if (loading) return <LoadingState label="Finding available workspaces..." className="loading-state-card" />;
 
   return (
     <form className="booking-flow" onSubmit={handleSubmit}>
@@ -152,7 +153,7 @@ export default function BookingFlow({ profile, initialLocation, initialDate, onB
         <label><span>END</span><input type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} /></label>
       </div>
       {error && <p className="booking-error" role="alert">{error}</p>}
-      <button className="search-workspace-button booking-submit" type="submit" disabled={submitting || !nearbyWorkspaces.length}>{submitting ? 'Confirming...' : 'Confirm booking'} <span>→</span></button>
+      <button className="search-workspace-button booking-submit" type="submit" disabled={submitting || !nearbyWorkspaces.length}>{submitting ? <><span className="loading-spinner loading-spinner-button" aria-hidden="true" />Confirming...</> : <>Confirm booking <span>→</span></>}</button>
     </form>
   );
 }

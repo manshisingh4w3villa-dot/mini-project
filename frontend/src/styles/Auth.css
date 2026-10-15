@@ -720,6 +720,13 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .spinner,
+  .loading-spinner {
+    animation: none;
+  }
+}
+
 /* Auth Secondary / Resend Section */
 .auth-auxiliary-section {
   margin-top: 20px;
@@ -944,6 +951,11 @@
   background: #eef2ed;
   color: var(--auth-coral);
   border: 2px dashed var(--auth-coral);
+}
+
+.verification-icon-loading .loading-spinner {
+  border-color: rgba(232, 109, 84, .2);
+  border-top-color: var(--auth-coral);
 }
 
 .verification-icon-success {

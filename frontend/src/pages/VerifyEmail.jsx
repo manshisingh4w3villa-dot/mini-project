@@ -54,7 +54,7 @@ export default function VerifyEmail() {
         </div>
 
         <div className={`verification-icon verification-icon-${status}`} aria-hidden="true">
-          {status === 'success' ? '✓' : status === 'error' ? '!' : '…'}
+          {status === 'loading' ? <span className="loading-spinner" /> : status === 'success' ? '✓' : '!'}
         </div>
 
         <div className="form-header">

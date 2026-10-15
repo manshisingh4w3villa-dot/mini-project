@@ -211,7 +211,7 @@ export default function Login() {
                   disabled={resending || cooldown > 0}
                   onClick={() => handleResendVerification(form.email)}
                 >
-                  {resending ? 'Sending link...' : cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend verification email'}
+                  {resending ? <><span className="loading-spinner loading-spinner-button" aria-hidden="true" />Sending link...</> : cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend verification email'}
                 </button>
                 {resendStatus && <span className="resend-feedback">✓ {resendStatus}</span>}
               </div>

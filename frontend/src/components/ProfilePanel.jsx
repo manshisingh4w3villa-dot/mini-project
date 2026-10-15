@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import LoadingState from './LoadingState';
 import {
   downloadProfile,
   getAddressDetails,
@@ -37,6 +38,8 @@ export default function ProfilePanel({ fallbackUser, onProfileUpdated }) {
   });
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionsError, setSuggestionsError] = useState('');
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [loadingAddress, setLoadingAddress] = useState(false);
   const [addressSelected, setAddressSelected] = useState(Boolean(fallbackUser?.latitude && fallbackUser?.longitude));
   const [status, setStatus] = useState({ type: '', message: '' });
@@ -59,7 +62,8 @@ export default function ProfilePanel({ fallbackUser, onProfileUpdated }) {
         });
         setAddressSelected(Boolean(nextProfile.latitude && nextProfile.longitude));
       })
-      .catch(() => setStatus({ type: 'error', message: 'Could not load the latest profile details.' }));
+      .catch(() => setStatus({ type: 'error', message: 'Could not load the latest profile details.' }))
+      .finally(() => setLoadingProfile(false));
   }, []);
 
   useEffect(() => {
@@ -68,6 +72,7 @@ export default function ProfilePanel({ fallbackUser, onProfileUpdated }) {
     const query = form.address.trim();
     let active = true;
     const timer = setTimeout(() => {
+      setLoadingSuggestions(true);
       getAddressSuggestions(query)
         .then((items) => { if (active) { setSuggestions(items); setSuggestionsError(''); } })
         .catch((error) => {
@@ -75,7 +80,8 @@ export default function ProfilePanel({ fallbackUser, onProfileUpdated }) {
             setSuggestions([]);
             setSuggestionsError(error.response?.data?.error || 'Address suggestions are unavailable.');
           }
-        });
+        })
+        .finally(() => active && setLoadingSuggestions(false));
     }, 300);
 
     return () => { active = false; clearTimeout(timer); };
@@ -189,6 +195,11 @@ export default function ProfilePanel({ fallbackUser, onProfileUpdated }) {
   }
 
   const visibleSuggestions = form.address.trim().length >= 3 ? suggestions : [];
+  const isSearchingSuggestions = loadingSuggestions && form.address.trim().length >= 3;
+
+  if (loadingProfile) {
+    return <LoadingState label="Loading your profile..." className="loading-state-card" />;
+  }
 
   return (
     <div className="profile-manager">
@@ -202,8 +213,8 @@ export default function ProfilePanel({ fallbackUser, onProfileUpdated }) {
       <div className="profile-manager-avatar-row">
         <div className="profile-picture-wrap">
           {profile?.profile_picture_url ? <img className="profile-picture" src={profile.profile_picture_url} alt={`${profile.first_name} ${profile.last_name}`} /> : <span className="avatar avatar-large">{getInitials(profile)}</span>}
-          <label className="avatar-upload-button" title="Upload profile picture">
-            <span>+</span>
+          <label className="avatar-upload-button" title="Upload profile picture" aria-busy={uploading}>
+            {uploading ? <span className="loading-spinner loading-spinner-button" aria-hidden="true" /> : <span>+</span>}
             <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarChange} disabled={uploading} />
           </label>
         </div>
@@ -221,9 +232,9 @@ export default function ProfilePanel({ fallbackUser, onProfileUpdated }) {
       <form onSubmit={handleSave} className="profile-form">
         <div className="profile-form-row"><label><span>FIRST NAME</span><input name="firstName" value={form.firstName} onChange={handleChange} required /></label><label><span>LAST NAME</span><input name="lastName" value={form.lastName} onChange={handleChange} required /></label></div>
         <label><span>EMAIL ADDRESS</span><input value={profile?.email || ''} readOnly /></label>
-        <label className="address-field"><span>HOME OR WORK ADDRESS</span><input name="address" value={form.address} onChange={handleChange} placeholder="Start typing an address" autoComplete="off" aria-autocomplete="list" aria-expanded={visibleSuggestions.length > 0} />{(visibleSuggestions.length > 0 || loadingAddress || suggestionsError) && <div className="address-suggestions" role="listbox">{loadingAddress && <p className="address-suggestions-state">Loading address…</p>}{visibleSuggestions.map((suggestion) => <button type="button" role="option" key={suggestion.placeId} onClick={() => selectSuggestion(suggestion)}>{suggestion.label}</button>)}{suggestionsError && <p className="address-suggestions-state address-suggestions-error">{suggestionsError}</p>}{visibleSuggestions.length > 0 && <span className="google-attribution"><img src="https://maps.gstatic.com/mapfiles/api-3/images/powered-by-google-on-white3.png" alt="Powered by Google" /></span>}</div>}</label>
+        <label className="address-field"><span>HOME OR WORK ADDRESS</span><input name="address" value={form.address} onChange={handleChange} placeholder="Start typing an address" autoComplete="off" aria-autocomplete="list" aria-expanded={visibleSuggestions.length > 0 || isSearchingSuggestions} />{(visibleSuggestions.length > 0 || isSearchingSuggestions || loadingAddress || suggestionsError) && <div className="address-suggestions" role={isSearchingSuggestions || loadingAddress ? 'status' : 'listbox'}>{(isSearchingSuggestions || loadingAddress) && <LoadingState label={loadingAddress ? 'Finding address details...' : 'Searching addresses...'} className="loading-state-inline" />}{visibleSuggestions.map((suggestion) => <button type="button" role="option" key={suggestion.placeId} onClick={() => selectSuggestion(suggestion)}>{suggestion.label}</button>)}{suggestionsError && <p className="address-suggestions-state address-suggestions-error">{suggestionsError}</p>}{visibleSuggestions.length > 0 && <span className="google-attribution"><img src="https://maps.gstatic.com/mapfiles/api-3/images/powered-by-google-on-white3.png" alt="Powered by Google" /></span>}</div>}</label>
         {hasMapLocation && <div className="profile-map" ref={mapContainerRef} />}
-        <div className="profile-actions"><button className="profile-download" type="button" onClick={downloadProfile}>Download profile <span>↓</span></button><button className="button button-dark profile-save" type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</button></div>
+        <div className="profile-actions"><button className="profile-download" type="button" onClick={downloadProfile}>Download profile <span>↓</span></button><button className="button button-dark profile-save" type="submit" disabled={saving}>{saving ? <><span className="loading-spinner loading-spinner-button" aria-hidden="true" />Saving...</> : 'Save changes'}</button></div>
       </form>
     </div>
   );

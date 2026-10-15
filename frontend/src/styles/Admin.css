@@ -16,6 +16,17 @@
 	white-space: nowrap;
 }
 
+.admin-pagination .outline-button {
+	align-items: center;
+	display: inline-flex;
+	gap: 7px;
+}
+
+.admin-pagination .outline-button svg {
+	height: 15px;
+	width: 15px;
+}
+
 @media (max-width: 680px) {
 	.admin-container .dashboard-content-wrap {
 		padding: 28px 16px 40px;

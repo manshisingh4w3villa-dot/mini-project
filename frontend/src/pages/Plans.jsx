@@ -208,10 +208,10 @@ export default function Plans() {
           <button
             type="button"
             className="plan-cta-button is-coral"
-            disabled={loadingPlan === 'silver'}
+            disabled={Boolean(loadingPlan)}
             onClick={() => handlePlanAction('silver')}
           >
-            {loadingPlan === 'silver' ? 'Opening Checkout...' : 'Subscribe to Silver →'}
+            {loadingPlan === 'silver' ? <><span className="loading-spinner loading-spinner-button" aria-hidden="true" />Opening Checkout...</> : 'Subscribe to Silver →'}
           </button>
         </article>
 
@@ -255,10 +255,10 @@ export default function Plans() {
           <button
             type="button"
             className="plan-cta-button is-dark"
-            disabled={loadingPlan === 'gold'}
+            disabled={Boolean(loadingPlan)}
             onClick={() => handlePlanAction('gold')}
           >
-            {loadingPlan === 'gold' ? 'Opening Checkout...' : 'Subscribe to Gold →'}
+            {loadingPlan === 'gold' ? <><span className="loading-spinner loading-spinner-button" aria-hidden="true" />Opening Checkout...</> : 'Subscribe to Gold →'}
           </button>
         </article>
       </main>
@@ -484,4 +484,3 @@ export default function Plans() {
     </div>
   );
 }
-

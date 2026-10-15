@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { createCheckoutSession } from '../services/PaymentService';
 
+function LoadingButtonLabel({ children }) {
+  return <><span className="loading-spinner loading-spinner-button" aria-hidden="true" />{children}</>;
+}
+
 function formatExpiry(value) {
   if (!value) return 'No expiry date';
   return `Renews ${new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
@@ -74,7 +78,7 @@ export default function PlanPanel({ profile, onError }) {
               <small>Unlimited hot desk access</small>
             </div>
             <button className="outline-button" disabled={Boolean(loadingPlan)} onClick={() => handleUpgrade('silver')}>
-              {loadingPlan === 'silver' ? 'Opening...' : 'Subscribe'} <span>→</span>
+              {loadingPlan === 'silver' ? <LoadingButtonLabel>Opening checkout...</LoadingButtonLabel> : 'Subscribe'} {!loadingPlan && <span>→</span>}
             </button>
           </article>
 
@@ -91,7 +95,7 @@ export default function PlanPanel({ profile, onError }) {
               <small>Premium resident access</small>
             </div>
             <button className="search-workspace-button" disabled={Boolean(loadingPlan)} onClick={() => handleUpgrade('gold')}>
-              {loadingPlan === 'gold' ? 'Opening...' : 'Subscribe'} <span>→</span>
+              {loadingPlan === 'gold' ? <LoadingButtonLabel>Opening checkout...</LoadingButtonLabel> : <>Subscribe <span>→</span></>}
             </button>
           </article>
         </div>
