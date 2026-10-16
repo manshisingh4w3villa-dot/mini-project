@@ -333,7 +333,7 @@ export default function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole="customer">
               <Dashboard />
             </ProtectedRoute>
           }
@@ -349,7 +349,7 @@ export default function App() {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole="admin">
               <AdminPageErrorBoundary>
                 <AdminPanel />
               </AdminPageErrorBoundary>

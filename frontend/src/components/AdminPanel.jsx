@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate, Link, useNavigate } from 'react-router-dom';
 import { getAdminUser, getAdminUsers, updateAdminUser } from '../services/AdminService';
+import { getLocations } from '../services/LocationService';
 import { useAuth } from '../context/AuthContext';
 import LoadingState from './LoadingState';
 import '../styles/Admin.css';
@@ -37,12 +38,21 @@ function formatAmount(value) {
     : 'Amount unavailable';
 }
 
+function formatWorkspacePrice(value) {
+  const amount = Number(value);
+  return Number.isFinite(amount)
+    ? amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })
+    : 'Not available';
+}
+
 function userInitials(user) {
   return `${user?.first_name?.[0] || ''}${user?.last_name?.[0] || ''}`.toUpperCase() || 'U';
 }
 
 export default function AdminPanel() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [activeSection, setActiveSection] = useState('users');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [plan, setPlan] = useState('all');
@@ -59,9 +69,13 @@ export default function AdminPanel() {
   const [draft, setDraft] = useState({ firstName: '', lastName: '', address: '' });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [locations, setLocations] = useState([]);
+  const [selectedLocationId, setSelectedLocationId] = useState(null);
+  const [locationsLoaded, setLocationsLoaded] = useState(false);
+  const [locationsError, setLocationsError] = useState('');
 
   useEffect(() => {
-    if (!user?.is_admin) return undefined;
+    if (!user?.is_admin || activeSection !== 'users') return undefined;
     let active = true;
     const timer = setTimeout(() => {
       setLoading(true);
@@ -79,7 +93,23 @@ export default function AdminPanel() {
       active = false;
       clearTimeout(timer);
     };
-  }, [search, status, plan, page, user?.is_admin]);
+  }, [activeSection, search, status, plan, page, user?.is_admin]);
+
+  useEffect(() => {
+    if (!user?.is_admin || activeSection !== 'workspaces' || locationsLoaded) return undefined;
+    let active = true;
+    getLocations()
+      .then((items) => {
+        if (!active) return;
+        if (!Array.isArray(items)) throw new Error('The server returned an invalid location list.');
+        setLocations(items.filter((location) => Array.isArray(location.workspaces) && location.workspaces.length > 0));
+      })
+      .catch((requestError) => {
+        if (active) setLocationsError(requestError.response?.data?.error || requestError.message || 'Unable to load locations.');
+      })
+      .finally(() => active && setLocationsLoaded(true));
+    return () => { active = false; };
+  }, [activeSection, user?.is_admin, locationsLoaded]);
 
   useEffect(() => {
     if (!selectedUserId) return undefined;
@@ -124,6 +154,11 @@ export default function AdminPanel() {
     setSaveError('');
   }
 
+  function handleLogout() {
+    logout();
+    navigate('/login', { replace: true });
+  }
+
   function openDetails(userId) {
     setSelectedUserId(userId);
     setSelectedUser(null);
@@ -158,18 +193,25 @@ export default function AdminPanel() {
 
   const firstResult = result.total ? (page - 1) * result.pageSize + 1 : 0;
   const lastResult = Math.min(page * result.pageSize, result.total);
+  const selectedLocation = locations.find((location) => String(location.id) === String(selectedLocationId));
+  const selectedWorkspaces = selectedLocation?.workspaces || [];
+  const isWorkspaceSection = activeSection === 'workspaces';
+  const locationsLoading = isWorkspaceSection && !locationsLoaded;
 
   return (
     <div className="dashboard-container admin-container">
       <aside className="dashboard-sidebar">
-        <Link className="dashboard-brand" to="/dashboard"><span className="dashboard-brand-mark">n</span> nook<span>.</span></Link>
+        <Link className="dashboard-brand" to="/admin"><span className="dashboard-brand-mark">n</span> nook<span>.</span></Link>
         <div className="sidebar-label">Administration</div>
         <nav className="dashboard-nav" aria-label="Admin navigation">
-          <span className="dashboard-nav-item is-active" aria-current="page">
+          <button className={activeSection === 'users' ? 'dashboard-nav-item is-active' : 'dashboard-nav-item'} type="button" onClick={() => { setActiveSection('users'); closeDetails(); }} aria-current={activeSection === 'users' ? 'page' : undefined}>
             <span className="nav-item-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20m6-9a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm6-6.5a4 4 0 0 1 0 7.7M17 15h1.5a3.5 3.5 0 0 1 3.5 3.5V20" /></svg></span>
             User management
-          </span>
-          <Link className="dashboard-nav-item" to="/dashboard"><span className="nav-item-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5M4 9h10a6 6 0 0 1 0 12h-2" /></svg></span>Workspace</Link>
+          </button>
+          <button className={activeSection === 'workspaces' ? 'dashboard-nav-item is-active' : 'dashboard-nav-item'} type="button" onClick={() => { setActiveSection('workspaces'); closeDetails(); }} aria-current={activeSection === 'workspaces' ? 'page' : undefined}>
+            <span className="nav-item-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5M9 9h.01M15 9h.01" /></svg></span>
+            Workspaces
+          </button>
         </nav>
         <div className="sidebar-bottom"><div className="sidebar-caption">Admin access<br /><span>{user.email}</span></div></div>
       </aside>
@@ -177,19 +219,27 @@ export default function AdminPanel() {
       <main className="dashboard-main">
         <header className="dashboard-topbar admin-topbar">
           <div className="mobile-brand"><span className="dashboard-brand-mark">n</span> nook.</div>
-          <Link className="admin-workspace-link" to="/dashboard">Open workspace</Link>
+          <div className="admin-topbar-actions">
+            <button className="admin-workspace-link" type="button" onClick={() => { setActiveSection(isWorkspaceSection ? 'users' : 'workspaces'); closeDetails(); }}>
+              {isWorkspaceSection ? 'User management' : 'View workspaces'}
+            </button>
+            <button className="admin-logout-button" type="button" onClick={handleLogout}>
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M10 17l5-5-5-5m5 5H3" /><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" /></svg>
+              Sign out
+            </button>
+          </div>
         </header>
         <div className="dashboard-content-wrap admin-content">
           <div className="admin-page-intro">
             <div>
-              <p className="dashboard-eyebrow">ADMINISTRATION / DIRECTORY</p>
-              <h1>User management</h1>
-              <p className="dashboard-subtitle">Review account details and keep member records up to date.</p>
+              <p className="dashboard-eyebrow">ADMINISTRATION / {isWorkspaceSection ? 'WORKSPACES' : 'DIRECTORY'}</p>
+              <h1>{isWorkspaceSection ? 'Workspaces' : 'User management'}</h1>
+              <p className="dashboard-subtitle">{isWorkspaceSection ? 'Browse available spaces by location.' : 'Review account details and keep member records up to date.'}</p>
             </div>
-            <div className="admin-total-card"><span className="admin-total-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20m6-9a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm6-6.5a4 4 0 0 1 0 7.7M17 15h1.5a3.5 3.5 0 0 1 3.5 3.5V20" /></svg></span><span><strong>{result.total}</strong><small>registered users</small></span></div>
+            <div className="admin-total-card"><span className="admin-total-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d={isWorkspaceSection ? 'M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5M9 9h.01M15 9h.01' : 'M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20m6-9a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm6-6.5a4 4 0 0 1 0 7.7M17 15h1.5a3.5 3.5 0 0 1 3.5 3.5V20'} /></svg></span><span><strong>{isWorkspaceSection ? (selectedLocation ? selectedWorkspaces.length : locations.length) : result.total}</strong><small>{isWorkspaceSection ? (selectedLocation ? 'available spaces' : 'locations with spaces') : 'registered users'}</small></span></div>
           </div>
 
-          <section className="admin-directory" aria-labelledby="directory-title">
+          {activeSection === 'users' && <section className="admin-directory" aria-labelledby="directory-title">
             <div className="admin-directory-heading">
               <div><h2 id="directory-title">User directory</h2><p>Search accounts, narrow the list, or open a record to view and edit details.</p></div>
               <span className="admin-page-summary">{loading ? 'Updating directory…' : `Showing ${firstResult}–${lastResult} of ${result.total}`}</span>
@@ -222,11 +272,50 @@ export default function AdminPanel() {
               <span>{result.total ? `Page ${result.page} of ${Math.max(result.totalPages, 1)}` : 'No matching users'}</span>
               <div><button className="admin-page-button" disabled={page <= 1 || loading} onClick={() => setPage((current) => current - 1)}>Previous</button><button className="admin-page-button" disabled={page >= result.totalPages || loading} onClick={() => setPage((current) => current + 1)}>Next</button></div>
             </div>
-          </section>
+          </section>}
+
+          {isWorkspaceSection && <section className="admin-directory" aria-labelledby="workspaces-title">
+            <div className="admin-directory-heading">
+              <div>
+                {selectedLocation && <button className="admin-location-back" type="button" onClick={() => setSelectedLocationId(null)}>← All locations</button>}
+                <h2 id="workspaces-title">{selectedLocation ? selectedLocation.name : 'Available locations'}</h2>
+                <p>{selectedLocation ? `${selectedLocation.city}${selectedLocation.address ? ` · ${selectedLocation.address}` : ''} · Available spaces at this location.` : 'Choose a location to see its available spaces.'}</p>
+              </div>
+              <span className="admin-page-summary">{locationsLoading ? 'Loading locations…' : selectedLocation ? `${selectedWorkspaces.length} available ${selectedWorkspaces.length === 1 ? 'space' : 'spaces'}` : `${locations.length} ${locations.length === 1 ? 'location' : 'locations'}`}</span>
+            </div>
+            {locationsError && <div className="admin-workspaces-error"><p className="booking-error" role="alert">{locationsError}</p><button className="admin-page-button" type="button" onClick={() => { setLocationsError(''); setLocationsLoaded(false); }}>Try again</button></div>}
+            {locationsLoading ? <div className="admin-workspaces-loading"><LoadingState label="Loading available locations..." /></div> : locationsError ? null : selectedLocation ? (
+              <div className="admin-table-wrap admin-workspaces-table-wrap">
+                <table className="admin-table admin-workspaces-table">
+                  <thead><tr><th scope="col">Space</th><th scope="col">Type</th><th scope="col">Capacity</th><th scope="col">Hourly rate</th></tr></thead>
+                  <tbody>
+                    {selectedWorkspaces.map((workspace) => (
+                      <tr key={workspace.id}>
+                        <td data-label="Space"><div className="admin-workspace-identity"><strong>{workspace.name}</strong></div></td>
+                        <td data-label="Type">{workspace.type || 'Workspace'}</td>
+                        <td data-label="Capacity">{workspace.capacity == null ? 'Not specified' : `${workspace.capacity} ${Number(workspace.capacity) === 1 ? 'person' : 'people'}`}</td>
+                        <td data-label="Hourly rate" className="admin-workspace-rate">{formatWorkspacePrice(workspace.price_per_hour)}<small> / hour</small></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : locations.length ? (
+              <div className="admin-location-grid">
+                {locations.map((location) => (
+                  <button className="admin-location-card" key={location.id} type="button" onClick={() => setSelectedLocationId(location.id)}>
+                    <span className="admin-location-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg></span>
+                    <span className="admin-location-card-copy"><strong>{location.name}</strong><small>{location.city}</small><span>{location.workspaces.length} available {location.workspaces.length === 1 ? 'space' : 'spaces'}</span></span>
+                    <span className="admin-location-card-arrow" aria-hidden="true">→</span>
+                  </button>
+                ))}
+              </div>
+            ) : <div className="admin-workspaces-empty"><strong>No available locations</strong><span>There are no locations with available spaces right now.</span></div>}
+          </section>}
         </div>
       </main>
 
-      {selectedUserId && <div className="admin-dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && !saving && closeDetails()}>
+      {selectedUserId && activeSection === 'users' && <div className="admin-dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && !saving && closeDetails()}>
         <section className="admin-user-dialog" role="dialog" aria-modal="true" aria-labelledby="admin-user-dialog-title">
           <div className="admin-dialog-header">
             <div><p className="dashboard-eyebrow">USER RECORD</p><h2 id="admin-user-dialog-title">{editing ? 'Edit user details' : 'User details'}</h2></div>
