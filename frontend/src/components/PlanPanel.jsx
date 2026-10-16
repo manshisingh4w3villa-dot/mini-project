@@ -28,24 +28,28 @@ export default function PlanPanel({ profile, onError }) {
   const isActive = profile?.plan_status === 'active';
   const planBenefits = ['Workspace access with no hourly charges', 'Flexible hourly booking', 'Priority access to available spaces'];
   const currentPlanPrice = profile?.plan_name === 'gold' ? '₹4,499 / month' : '₹1,999 / month';
+  const hasActiveDiscount = isActive
+    && (!profile.plan_expires_at || new Date(profile.plan_expires_at) > new Date());
+  const discountPercent = hasActiveDiscount
+    ? ({ gold: 30, silver: 15 }[String(profile.plan_name || '').toLowerCase()] || 0)
+    : 0;
 
   return (
     <section className="dashboard-panel plan-panel">
       {isActive ? (
         <>
           <div className="plan-highlight">
-            <div>
+            <div className="plan-highlight-content">
               <p className="dashboard-eyebrow">CURRENT PLAN</p>
-              <h3>{profile.plan_name || 'Active plan'}</h3>
+              <div className="plan-highlight-details">
+                <h3>{profile.plan_name || 'Active plan'}</h3>
+                <span className="plan-highlight-price">{currentPlanPrice}</span>
+                {discountPercent > 0 && <span className="plan-highlight-discount">{discountPercent}% workspace booking discount</span>}
+              </div>
+              <p className="plan-expiry">{formatExpiry(profile.plan_expires_at)}</p>
             </div>
             <span className="plan-highlight-status">Active</span>
           </div>
-          <div className="plan-summary-strip">
-            <span className="plan-summary-label">Membership</span>
-            <strong>{profile.plan_name || 'Active plan'}</strong>
-            <span className="plan-summary-price">{currentPlanPrice}</span>
-          </div>
-          <p className="plan-expiry">{formatExpiry(profile.plan_expires_at)}</p>
         </>
       ) : (
         <>
@@ -62,9 +66,7 @@ export default function PlanPanel({ profile, onError }) {
 
       <ul className="plan-benefits">{planBenefits.map((benefit) => <li key={benefit}><span>✓</span>{benefit}</li>)}</ul>
 
-      {isActive ? (
-        <p className="plan-active-note">Your subscription includes workspace usage with no hourly charge. To change plans, cancel the current subscription in Stripe first.</p>
-      ) : (
+      {!isActive && (
         <div className="plan-options">
           <article className="plan-option">
             <div className="plan-option-copy">
